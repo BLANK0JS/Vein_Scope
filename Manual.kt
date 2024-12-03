@@ -45,8 +45,15 @@ fun ManualScreen(
                         if (storedData.any { it.isBlank() }) {
                             log = listOf("Error: 데이터가 완전히 수신되지 않았습니다.") + log
                         } else {
-                            val offsetvalues = dataControl?.saveOffsetValues(storedData)
-                            log = listOf("오프셋 저장 완료 : $offsetvalues") + log
+                            val saveResult = dataControl?.saveSensorValues(storedData)
+                            if (saveResult != null) {
+                                if (saveResult.startsWith("Error")) {
+                                    log = listOf(saveResult) + log
+                                } else {
+                                    log = listOf("데이터 저장 완료: $saveResult") + log
+                                    Toast.makeText(context, "모든 데이터 처리가 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         }
                     }
                 }
@@ -57,20 +64,6 @@ fun ManualScreen(
                 onBackClick() // 연결이 끊어지면 이전 화면으로 돌아감
             }
         )
-    }
-
-    // 초기화 동작
-    fun startOffsetMeasurement() {
-        // 1. 로그에 "센서를 허공에 향하세요" 추가
-        log = listOf("센서를 허공에 향하세요") + log
-
-        // 2. 3초 후 "start" 명령 전송
-        coroutineScope.launch {
-            kotlinx.coroutines.delay(3000) // 3초 대기
-            bluetoothManager?.sendData("start") { newLog ->
-                log = listOf(newLog) + log
-            }
-        }
     }
 
     Column(
@@ -92,17 +85,6 @@ fun ManualScreen(
                 .padding(bottom = 16.dp)
         ) {
             Text(text = "측정 시작", color = Color.White, fontSize = 18.sp)
-        }
-
-        // 초기화 버튼
-        Button(
-            onClick = { startOffsetMeasurement() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp)
-                .padding(bottom = 16.dp)
-        ) {
-            Text(text = "초기화 (오프셋 측정)", color = Color.White, fontSize = 18.sp)
         }
 
         // 레이저 ON/OFF 버튼

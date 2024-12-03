@@ -38,14 +38,15 @@ import java.util.concurrent.atomic.AtomicReference
 @Composable
 fun TerminalScreen(
     onBackClick: () -> Unit,
-    bluetoothManager: BluetoothManager? = null
+    bluetoothManager: BluetoothManager? = null,
+    receivedData: String = ""
 ) {
     var inputText by remember { mutableStateOf("") }
     var terminalLog by remember { mutableStateOf(listOf<String>()) }
     val context = LocalContext.current
 
     // 블루투스 데이터 수신
-    LaunchedEffect(bluetoothManager) {
+    LaunchedEffect(receivedData) {
         bluetoothManager?.receiveData(
             updateLog = { message ->
                 terminalLog = listOf(message) + terminalLog

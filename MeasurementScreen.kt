@@ -30,6 +30,7 @@ fun MeasurementScreen(
     var timerProgress by remember { mutableStateOf(0f) } // ProgressIndicator 진행도 (기본값 0)
     var isAnalyzing by remember { mutableStateOf(false) }
     var isMeasuring by remember { mutableStateOf(false) } // 측정 중 여부
+    var isButtonVisible by remember { mutableStateOf(true) } // 버튼 가시성 여부
     val coroutineScope = rememberCoroutineScope()
 
     // 데이터 수신
@@ -43,30 +44,20 @@ fun MeasurementScreen(
                     if (storedData.any { it.isBlank() }) {
                         Toast.makeText(context, "Error: 데이터가 완전히 수신되지 않았습니다.", Toast.LENGTH_SHORT).show()
                     } else {
+                        // 데이터 저장 및 처리
                         val saveResult = dataControl?.saveSensorValues(storedData)
                         if (saveResult != null) {
                             if (saveResult.startsWith("Error")) {
                                 Toast.makeText(context, saveResult, Toast.LENGTH_SHORT).show()
                             } else {
-                                // 오프셋 적용
-                                val offsetResult = dataControl.applyOffsetAndAppend(saveResult)
-                                if (offsetResult.startsWith("Error")) {
-                                    Toast.makeText(context, offsetResult, Toast.LENGTH_SHORT).show()
-                                } else {
-                                    // 미분 적용
-                                    val differentiationResult = dataControl.applyDifferentiationAndAppend(offsetResult)
-                                    if (differentiationResult.startsWith("Error")) {
-                                        Toast.makeText(context, differentiationResult, Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(context, "모든 데이터 처리가 성공적으로 완료되었습니다.", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
+                                Toast.makeText(context, "모든 데이터 처리가 성공적으로 완료되었습니다. 파일: $saveResult", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
                     message = "완료"
                     isAnalyzing = false
                     isMeasuring = false
+                    isButtonVisible = true // 버튼 가시성 켜기
                 }
             },
             onDisconnected = {
@@ -74,7 +65,6 @@ fun MeasurementScreen(
             }
         )
     }
-
 
     Column(
         modifier = Modifier
@@ -95,18 +85,26 @@ fun MeasurementScreen(
                 modifier = Modifier.size(60.dp),
                 strokeWidth = 6.dp
             )
-        } else {
+        } else if (isButtonVisible) {
             Button(onClick = {
                 // 완료 버튼 로직
                 coroutineScope.launch {
+                    isButtonVisible = false // 버튼 가시성 끄기
+
+                    // 5초 카운트다운 시작
+                    for (i in 5 downTo 1) {
+                        message = "$i 초 후 측정 시작"
+                        delay(1000L) // 1초 대기
+                    }
+                    // 측정 시작
                     bluetoothManager?.sendData("start") {}
                     message = "측정 중입니다..."
                     timerProgress = 0f // 초기화
                     isMeasuring = true // 프로세스바 표시 시작
 
-                    // 10초 타이머 실행 (100단계)
+                    // 30초 타이머 실행 (100단계)
                     val steps = 100 // 총 단계 수
-                    val stepDelay = 10000L / steps // 단계별 지연 시간 (ms)
+                    val stepDelay = 30000L / steps // 단계별 지연 시간 (ms)
                     for (i in 0..steps) { // 0부터 steps까지 진행
                         timerProgress = i / steps.toFloat()
                         delay(stepDelay) // 단계별 대기
@@ -118,7 +116,7 @@ fun MeasurementScreen(
             },
                 enabled = !isAnalyzing
             ) {
-                Text("완료")
+                Text(if (message != "완료") "완료" else "재측정")
             }
         }
 

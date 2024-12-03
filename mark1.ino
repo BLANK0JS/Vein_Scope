@@ -72,12 +72,24 @@ void loop() {
           selectTCA9548AChannel(channel);
           send_S = mlx.readObjectTempC();
           hc06.print(send_S + " ");
-          delay(100);
+          delay(200);
         }
         hc06.print("\n");
+        delay(500);
       }
       hc06.println("end");
     }
+
+    if (receivedData_S == "now") {
+      for (uint8_t channel = 0; channel <= 4; channel++) {
+        selectTCA9548AChannel(channel);
+        send_S = mlx.readObjectTempC();
+        hc06.print(send_S + " ");
+        delay(100);
+      }
+        hc06.print("\n");
+    }
+
     receivedData_S = "";
   }
 }
